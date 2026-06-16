@@ -48,25 +48,23 @@ second arg for Cursor.)
 
 ### Step 2 — Generate the BFSI boilerplate (skill-driven)
 
-Download the script:
+Enter the project and launch Claude:
 
 ```bash
-curl -O https://raw.githubusercontent.com/joshsoftware/ai-assistant-skilles/main/reactjs/bootstrap/setup_architecture.sh
-chmod +x setup_architecture.sh
+cd my-bank-app
+claude
 ```
 
-Run it against the project (it takes the project dir as an argument — no `cd`):
+Then tell Claude:
 
-```bash
-./setup_architecture.sh my-bank-app
+```
+Initialize this project
 ```
 
-This drives Claude to run the **`bfsi-bootstrap`** skill, which builds the full
-foundation — config, folder structure, HTTP/PII/i18n primitives, routing,
-layouts, and the `login` reference feature.
-
-> **Interactive alternative:** instead of Step 2, `cd my-bank-app`, open `claude`,
-> and say **"set up the BFSI boilerplate"**.
+Claude will automatically invoke the **`bfsi-bootstrap`** skill, which builds the
+full foundation — config, folder structure, HTTP/PII/i18n primitives, routing,
+layouts, and the `login` reference feature. You can also say **"set up the BFSI
+boilerplate"**, **"bootstrap this project"**, or **"build the foundation"**.
 
 ### Step 3 — Configure environment
 

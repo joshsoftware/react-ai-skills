@@ -1,15 +1,15 @@
 # BFSI React — Bootstrap Scripts
 
-Two scripts that take you from nothing to a tailored, AI-ready BFSI React
-project.
+A single script and one Claude prompt take you from nothing to a tailored,
+AI-ready BFSI React project.
 
 The flow is straightforward:
 
 | Step | React flow |
 | ---- | ---------- |
-| 1 | `npm create vite` creates the base React + TypeScript app |
-| 2 | The `.claude` toolkit and `CLAUDE.md` are cloned from this repo |
-| 3 | The `bfsi-bootstrap` skill builds the foundation |
+| 1 | `create_react_project.sh` — scaffolds a Vite + React + TS app and copies the `.claude` toolkit |
+| 2 | `cd project_name && claude` → tell Claude **"Initialize this project"** |
+| 3 | The `bfsi-bootstrap` skill builds the complete foundation |
 
 **The boilerplate is not cloned.** A fresh app is generated with **npm**, and the
 `bfsi-bootstrap` skill — which contains the complete boilerplate setup spec —
@@ -18,8 +18,7 @@ drives Claude to build out the full BFSI foundation.
 ```text
 reactjs/
 ├── bootstrap/
-│   ├── create_react_project.sh   # 1. npm create vite + clone .claude toolkit
-│   └── setup_architecture.sh     # 2. run the bfsi-bootstrap skill via Claude
+│   └── create_react_project.sh          # npm create vite + clone .claude toolkit
 └── bfsi-boilerplate/
     └── .claude/skills/bfsi-bootstrap/   # the "complete boilerplate setup" skill
 ```
@@ -95,45 +94,26 @@ the bootstrap skill to `AGENTS.md`.
 
 ## Step 2 — Generate the boilerplate (skill-driven)
 
-Drives Claude Code headlessly and invokes the **`bfsi-bootstrap`** skill, which
-builds the complete foundation from scratch — dependencies (npm), tooling config,
-folder structure, HTTP/PII/i18n primitives, routing, layouts, and the `login`
-reference feature — **without scaffolding business features**.
-
-The script runs in a bootstrap-fast mode that skips the expensive per-edit
-verification hooks, so it finishes much faster than a normal interactive Claude
-session.
-
-### Download Setup Script
+Once the project is created, enter it and launch Claude. The **`bfsi-bootstrap`**
+skill builds the complete foundation from scratch — dependencies (npm), tooling
+config, folder structure, HTTP/PII/i18n primitives, routing, layouts, and the
+`login` reference feature — **without scaffolding business features**.
 
 ```bash
-curl -O https://raw.githubusercontent.com/joshsoftware/ai-assistant-skilles/main/reactjs/bootstrap/setup_architecture.sh
+cd my-bank-app
+claude
 ```
 
-Make it executable:
+Then tell Claude:
 
-```bash
-chmod +x setup_architecture.sh
+```
+Initialize this project
 ```
 
-### Run it against the project
-
-From the same directory (`setup_architecture.sh` takes the project dir as an
-argument — no need to `cd` in):
-
-```bash
-./setup_architecture.sh my-bank-app                    # uses package.json name
-./setup_architecture.sh my-bank-app --scope @my-bank   # set an npm scope
-```
-
-Or, interactively: `cd my-bank-app`, open `claude`, and say **"set up the BFSI
-boilerplate"**.
-
-| Arg / flag     | Default                  | Purpose                          |
-| -------------- | ------------------------ | -------------------------------- |
-| `project_dir`  | `.`                      | Project to bootstrap             |
-| `--scope`      | derived from package name| npm scope / attribution          |
-| `CLAUDE_MODEL` | _(claude default)_       | Passed to `claude --model`       |
+Claude will automatically invoke the `bfsi-bootstrap` skill and generate the
+entire BFSI boilerplate. You can also say **"set up the BFSI boilerplate"**,
+**"bootstrap this project"**, or **"build the foundation"** — the skill
+recognises all of these phrases.
 
 ## Step 3 — Build features
 

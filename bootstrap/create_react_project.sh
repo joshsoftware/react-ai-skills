@@ -10,8 +10,9 @@
 #      `CLAUDE.md` from this git repo into the project.
 #
 # The complete boilerplate (folder structure, http/pii/i18n primitives, login
-# reference feature, configs, husky) is GENERATED later by running the
-# `bfsi-bootstrap` skill — see setup_architecture.sh.
+# reference feature, configs, husky) is GENERATED later by running Claude
+# inside the project and saying "Initialize this project" — which invokes the
+# `bfsi-bootstrap` skill.
 #
 # Uses npm only.
 #
@@ -91,7 +92,7 @@ if [ "$AI_TOOL" = "claude" ]; then
     echo "→ Installing Claude toolkit into .claude/ + CLAUDE.md ..."
     cp -R "$SRC" "$PROJECT_NAME/.claude"
     # CLAUDE.md is copied as-is; the bfsi-bootstrap skill refines it later
-    # (setup_architecture.sh). Placeholders like @<scope> stay until then.
+    # when the user runs "Initialize this project". Placeholders like @<scope> stay until then.
     cp "$SRC_CLAUDE_MD" "$PROJECT_NAME/CLAUDE.md"
 else
     echo "→ Installing Cursor toolkit (.cursor/skills + AGENTS.md) ..."
@@ -127,11 +128,7 @@ echo "Next — generate the full BFSI boilerplate (the bfsi-bootstrap skill is a
 echo ""
 echo "  cd $PROJECT_NAME"
 if [ "$AI_TOOL" = "claude" ]; then
-    echo "  claude     # then say: \"set up the BFSI boilerplate\""
-    echo ""
-    echo "  # ...or run it headlessly with the companion script (same GitHub link as this one):"
-    echo "  curl -O https://raw.githubusercontent.com/joshsoftware/ai-assistant-skilles/main/reactjs/bootstrap/setup_architecture.sh"
-    echo "  bash setup_architecture.sh ."
+    echo "  claude     # then say: \"Initialize this project\""
 else
     echo "  cursor .   # then ask Cursor to follow AGENTS.md"
 fi
