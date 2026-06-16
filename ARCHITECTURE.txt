@@ -1,0 +1,138 @@
+# BFSI Architecture
+
+How this codebase is layered and why. Read this before adding a feature, moving code, or wiring a new data path. The canonical, in-code reference is `src/features/login/` — when this document and the code disagree, the code wins; fix the document.
+
+## Tech stack
+
+The tools each layer is built on. Pick the one the convention assigns — don't reach past it.
+
+| Concern | Tool | Notes |
+| ------- | ---- | ----- |
+| **Language** | TypeScript (strict) | no implicit `any`; network shapes are interfaces, form/env types via `z.infer` |
+| **UI runtime** | React 19 | function components + hooks only |
+| **Build / dev server** | Vite 5 | `npm run dev` on :5173; assets Vite-hashed from `src/assets/` |
+| **Styling** | Tailwind CSS + shadcn/ui | shadcn components owned in `src/components/ui/`, added via `shadcn-ui` CLI — not hand-authored |
+| **Server state** | TanStack Query v5 | feature `hooks/`; the only home for fetched/cached data |
+| **Client state** | Zustand v5 | `src/stores/`; app-wide UI state only — never mirror server data |
+| **Forms** | React Hook Form + Zod | schema in `utils.ts`, wired via `zodResolver` |
+| **Validation** | Zod | form input + `src/env.ts` boot validation (network responses are NOT runtime-validated by default) |
+| **HTTP** | Axios | single instance from `createAxios()` in `src/lib/http/` |
+| **Routing** | react-router-dom v6 | code-split via `React.lazy()`; leaf gating via `<ProtectedRoute permission="...">` |
+| **i18n** | react-i18next | `en` / `hi`; one namespace per feature |
+| **Unit / component tests** | Vitest + Testing Library | `npm test` |
+| **E2E tests** | Playwright | `npm run test:e2e` |
+| **Lint / format** | ESLint (`--max-warnings 0`) + Prettier | warnings fail CI |
+| **Package manager** | npm | |
+
+## Layers (top to bottom)
+
+| Layer | Lives in | Owns | Must NOT |
+| ----- | -------- | ---- | -------- |
+| **Presentational component** | `features/<F>/components/`, `components/common`, `components/bfsi`, `components/ui` | JSX, layout, emitting events via props | call hooks that fetch, `useNavigate`, touch the network, read stores directly |
+| **Container / page** | `features/<F>/index.tsx`, `features/<F>/containers/` | side-effects: calls hooks, navigation, form state, wiring props into a component | contain meaningful JSX of its own (compose a component instead) |
+| **Hook** | `features/<F>/hooks/` | thin `useQuery` / `useMutation` wrappers, query keys, cache policy | contain business mapping logic or JSX |
+| **Service** | `features/<F>/services.ts` | one typed function per endpoint, calling the HTTP helpers | import React, hooks, or query keys |
+| **HTTP helpers** | `src/api/http.ts` | typed `GET/POST/PUT/PATCH/DELETE` returning `response.data` as `TResponse` | know about features |
+| **Axios instance** | `src/api/axiosInstance.ts` | the single app instance, built from `createAxios()` with env config + 401 redirect | be re-created per call |
+| **HTTP library** | `src/lib/http/` (`createAxios`, `interceptors`, `errors`) | generic, app-agnostic axios factory + interceptors | import anything app-specific |
+
+## Data flow (read top-down for a request)
+
+```
+Component  (props in, events out — pure, no network)
+   ▲ props / callbacks
+Container / page  ──uses──▶  Hook (useQuery / useMutation)
+                                 │ calls
+                                 ▼
+                            Service  (services.ts)
+                              loginService = (p: ILoginRequest): Promise<ILoginResponse>
+                                 │ calls
+                                 ▼
+                       @/api/http  GET/POST<TRequest, TResponse>
+                              returns response.data typed as TResponse
+                                 │ uses
+                                 ▼
+                       @/api/axiosInstance  ◀── createAxios() from @/lib/http
+                              interceptors: auth header, 401 → login, error normalisation
+```
+
+Generic order is **`<TRequest, TResponse>`** — request first, response second: `POST<ILoginRequest, ILoginResponse>(ENDPOINTS.LOGIN, payload)`.
+
+## The dependency rule
+
+Dependencies point **downward and inward** only:
+
+- `components/` (presentational) import nothing from `services`/`hooks`/`@/api` — they receive everything via props. This is what makes security review tractable (data flow is visible in containers) and components testable without a network.
+- `hooks → services → @/api/http → axiosInstance → lib/http`. Never the reverse; a service never imports a hook, the HTTP layer never imports a feature.
+- **Features are islands.** `features/A` must not import from `features/B`'s internals. Anything shared moves to `src/shared/` (cross-feature components), `src/components/`, or `src/lib/`.
+- `src/lib/` is app-agnostic and may be imported anywhere; it imports nothing from `features/` or `app/`.
+
+## Type strategy — and where Zod does and does NOT apply
+
+There are two distinct typing concerns; do not conflate them:
+
+- **Network shapes (request/response): plain TypeScript interfaces** in `features/<F>/types.ts`, passed explicitly to the HTTP helpers (`POST<IRequest, IResponse>`). These are **compile-time only — responses are NOT runtime-validated with Zod**. The HTTP helper returns `response.data` cast to `TResponse`.
+- **Form input + env validation: Zod.** Form schemas live in `features/<F>/utils.ts` (e.g. `loginSchema`), with form value types **inferred** via `z.infer<typeof schema>` (never hand-written). `src/env.ts` Zod-validates env at boot. Forms wire the schema through `zodResolver` into RHF — see `bfsi-form`.
+
+If you ever want runtime response validation, that is a deliberate change to the data layer (and to the compliance posture), not the current default — raise it explicitly rather than silently adding `.parse()` calls.
+
+## State-management boundaries
+
+Pick the narrowest tool for the job:
+
+| Kind of state | Use | Where |
+| ------------- | --- | ----- |
+| Server data (fetched, cached, refetched) | **TanStack Query** | feature `hooks/` — see `tanstack-services`, `query-client-setup`, `perf-tuning` |
+| App-wide client/UI state (idle timer, MFA challenge, multi-step wizard) | **Zustand** | `src/stores/` (create on first store) — see `bfsi-zustand-store`. **Never** mirror server data here. |
+| Form state | **React Hook Form + Zod** | feature `components/` + `utils.ts` — see `bfsi-form` |
+| Local, ephemeral UI state | **`useState` / `useReducer`** | the component itself |
+
+Default order of reach: `useState` → TanStack Query (if it's server data) → Zustand (only if genuinely cross-component client state). Context is for static, rarely-changing values (theme, i18n), not app state.
+
+## Routing & authorization
+
+- Routes are registered in `src/routes/` and code-split via `React.lazy()` under the layout's shared `<Suspense>`.
+- **Layouts are chrome only.** `PublicLayout` (login/public) and `AppLayout` (authenticated shell) render shared chrome via `<Outlet />`; they do not gate permissions.
+- Permission gating stays at the **leaf**: `<ProtectedRoute permission="kyc.view">`. It does auth (valid session?) **and** authorization (is the permission in the user's set?). The client check is UX + an audit trigger — **the backend re-checks every call; never trust client-side permissions for security.**
+
+## Cross-cutting concerns
+
+- **PII** — render via `<PIIMaskedDisplay>` (`components/bfsi/`); patterns/validators/maskers in `src/lib/pii/`. Never render PAN/Aadhaar/account/customer-id raw. See `bfsi-pii-field`.
+- **Encryption** — browser Web Crypto wrappers in `src/lib/encryption/` (AES-GCM, RSA-OAEP, PBKDF2, envelope). See `bfsi-encrypt-helper`.
+- **Errors** — `src/shared/ErrorBoundary`; HTTP error normalisation in `src/lib/http/errors`; safe user/telemetry messages per `bfsi-error-message`.
+- **i18n** — `src/i18n/` (react-i18next, `en`/`hi`); one namespace per feature (`<feature>.*`), lazy-loadable per route.
+- **Constants** — centralised in `src/constants/` (`endPoints`, `statusCodes`, `routes`; add `queryKeys`/`regex`/`app` on first need). No inline endpoint/route strings. See `constants-organization`.
+- **Assets** — binaries live only under `src/assets/` (re-brand is a single-folder swap; two gates enforce it).
+
+## Where things live (quick map)
+
+```
+src/
+├── api/         axiosInstance.ts · http.ts (typed verbs) · queryClient.ts   ← app data layer
+├── app/         App.tsx (providers) · globals.css
+├── assets/      logo, fonts, icons (Vite-hashed)
+├── components/  bfsi/ (PII primitives) · common/ (FormInput, Image) · ui/ (shadcn)
+├── constants/   endPoints · statusCodes · routes (+ queryKeys/regex/app)
+├── features/    <Feature>/ — services · types · utils (Zod forms) · hooks · components · __tests__
+├── i18n/        react-i18next setup + translations/en.json · hi.json
+├── layouts/     PublicLayout · AppLayout (chrome via <Outlet/>)
+├── lib/         encryption · http (createAxios/interceptors/errors) · pii · utils
+├── routes/      ProtectedRoute · route config
+├── shared/      cross-feature components (ErrorBoundary, NotFound)
+├── env.ts       Zod-validated env (throws at boot)
+└── main.tsx     entry point
+```
+
+## Adding a feature — the short version
+
+1. Copy the shape of `src/features/login/` (or run `/bfsi-feature <Name>`).
+2. `types.ts` — request/response interfaces. `utils.ts` — Zod form schema + `z.infer` form types.
+3. `services.ts` — one typed function per endpoint, endpoints from `src/constants/endPoints.ts`.
+4. `hooks/` — `useQuery`/`useMutation` wrappers.
+5. `components/` — pure, props-driven; container/`index.tsx` wires hooks → component.
+6. Register the route under the right layout with `<ProtectedRoute permission="...">`.
+7. Add the `<feature>.*` i18n namespace.
+
+## Related skills
+
+`bfsi-feature` (scaffold) · `tanstack-services` · `query-client-setup` · `perf-tuning` · `bfsi-zustand-store` · `bfsi-form` · `axios-auth` · `constants-organization` · `bfsi-pii-field` · `bfsi-encrypt-helper` · `bfsi-error-message` · `bfsi-onboarding`.
