@@ -37,7 +37,10 @@ describe('useLogin', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(mockResponse);
-    expect(mockedLogin).toHaveBeenCalledWith({ username: 'admin', password: 'secret' });
+    expect(mockedLogin).toHaveBeenCalledWith(
+      { username: 'admin', password: 'secret' },
+      expect.anything(),
+    );
   });
 
   it('exposes the error on failure', async () => {

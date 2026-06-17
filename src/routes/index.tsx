@@ -7,6 +7,7 @@ import { NotFound } from '@/shared/NotFound';
 
 const LoginPage = lazy(() => import('@/features/login'));
 const Dashboard = lazy(() => import('@/shared/Dashboard').then((m) => ({ default: m.Dashboard })));
+const UserProfilePage = lazy(() => import('@/features/user-profile'));
 
 function Loading() {
   return (
@@ -31,6 +32,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute permission="dashboard.view">
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.userProfile}
+            element={
+              <ProtectedRoute permission="profile.view">
+                <UserProfilePage />
               </ProtectedRoute>
             }
           />

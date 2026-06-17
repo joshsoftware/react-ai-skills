@@ -20,6 +20,14 @@
     "forgotPassword": "Forgot password?",
     "error": "Invalid username or password"
   },
+  "userProfile": {
+    "title": "User Profile",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "pan": "PAN Number",
+    "aadhaar": "Aadhaar Number"
+  },
   "errors": {
     "sessionExpired": "Your session has expired. Please log in again.",
     "forbidden": "You do not have permission to perform this action.",

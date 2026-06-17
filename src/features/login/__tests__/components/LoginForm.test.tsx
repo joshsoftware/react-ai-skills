@@ -33,11 +33,10 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/username/i), 'admin');
     await user.type(screen.getByLabelText(/password/i), 'secret');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    await waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith({ username: 'admin', password: 'secret' }),
-    );
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0]?.[0]).toEqual({ username: 'admin', password: 'secret' });
   });
 
   it('shows validation errors for short username', async () => {
@@ -48,7 +47,7 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/username/i), 'ab');
     await user.type(screen.getByLabelText(/password/i), 'secret');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
+    await user.click(screen.getByRole('button', { name: /submit/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/at least 3 characters/i)).toBeDefined();
