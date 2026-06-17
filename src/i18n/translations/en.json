@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "BFSI App",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "logout": "Logout",
+    "back": "Back"
+  },
+  "login": {
+    "title": "Sign In",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign In",
+    "forgotPassword": "Forgot password?",
+    "error": "Invalid username or password"
+  },
+  "errors": {
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "forbidden": "You do not have permission to perform this action.",
+    "serverError": "A server error occurred. Please try again later.",
+    "networkError": "Unable to connect. Please check your connection."
+  }
+}
